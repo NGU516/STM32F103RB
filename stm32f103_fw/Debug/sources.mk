@@ -22,11 +22,21 @@ C_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+.metadata/.plugins/org.eclipse.cdt.make.core \
+.metadata/.plugins/org.eclipse.cdt.managedbuilder.core \
 src/ap \
 src/bsp \
 src/bsp/startup \
 src/hw/driver \
 src/hw \
+src/lib/cube_f103/Debug/Core/Src \
+src/lib/cube_f103/Debug/Core/Startup \
+src/lib/cube_f103/Debug/Drivers/STM32F1xx_HAL_Driver/Src \
+src/lib/cube_f103/Debug \
 src/lib/cube_f103/Drivers/STM32F1xx_HAL_Driver/Src \
+src/lib/cube_f103/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src \
+src/lib/cube_f103/Middlewares/ST/STM32_USB_Device_Library/Core/Src \
+src/lib/cube_f103/USB_DEVICE/App \
+src/lib/cube_f103/USB_DEVICE/Target \
 src \
 

@@ -1,10 +1,16 @@
-12:45:02 **** Incremental Build of configuration Debug for project stm32f103_fw ****
+12:06:37 **** Incremental Build of configuration Debug for project stm32f103_fw ****
 make -j20 all 
+arm-none-eabi-gcc -o "stm32f103_fw.elf" @"objects.list"   -mcpu=cortex-m3 -T"C:\Users\cdm\Desktop\STM32\stm32f103_fw\src\bsp\ldscript\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f103_fw.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: stm32f103_fw.elf
+ 
 arm-none-eabi-size  stm32f103_fw.elf 
+arm-none-eabi-objdump -h -S stm32f103_fw.elf  > "stm32f103_fw.list"
    text	   data	    bss	    dec	    hex	filename
-    620	      0	   1568	   2188	    88c	stm32f103_fw.elf
+  23848	     20	   2324	  26192	   6650	stm32f103_fw.elf
 Finished building: default.size.stdout
  
+Finished building: stm32f103_fw.list
+ 
 
-12:45:03 Build Finished. 0 errors, 0 warnings. (took 225ms)
+12:06:49 Build Finished. 0 errors, 0 warnings. (took 12s.482ms)
 
