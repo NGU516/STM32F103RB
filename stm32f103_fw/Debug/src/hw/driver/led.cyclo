@@ -1,0 +1,4 @@
+../src/hw/driver/led.c:25:6:led_init	2
+../src/hw/driver/led.c:54:6:led_on	2
+../src/hw/driver/led.c:61:6:led_off	2
+../src/hw/driver/led.c:68:6:led_toggle	2
