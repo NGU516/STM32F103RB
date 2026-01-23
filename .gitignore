@@ -1,0 +1,28 @@
+# STM32 설정
+.metadata/
+.recommenders/
+RemoteSystemsTempFiles/
+*.tmp
+*.bak
+
+# build result
+Debug/
+Release/
+bin/
+obj/
+
+# exec file
+*.elf
+*.bin
+*.hex
+*.map
+*.list
+*.o
+*.su
+
+# OS 관련 임시 파일
+.DS_Store
+Thumbs.db
+
+# STM32CubeMX 백업 파일
+*.mxproject.bak
