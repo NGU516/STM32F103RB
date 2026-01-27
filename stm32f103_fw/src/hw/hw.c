@@ -17,4 +17,5 @@ void hw_init(void)
   bsp_init();
 
   led_init();
+  button_init();
 }
