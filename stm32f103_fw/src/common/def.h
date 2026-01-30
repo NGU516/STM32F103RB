@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdint.h> // uint32_t
 #include <stdbool.h>
+#include <stdarg.h>
 
 
 // LED CH(채널) 설정
@@ -25,6 +26,11 @@
 // BUTTON CH(채널) 설정
 #define _DEF_BUTTON1  0
 
+// UART CH(채널) 설정
+#define _DEF_UART1    0
+#define _DEF_UART2    1
+#define _DEF_UART3    2
+#define _DEF_UART4    3
 
 
 #endif /* SRC_COMMON_DEF_H_ */
