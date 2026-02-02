@@ -17,6 +17,7 @@
 // button control api
 bool button_init(void);
 bool button_pressed(uint8_t ch);
+bool button_get_event(uint8_t ch);
 
 
 #endif

@@ -15,12 +15,13 @@ typedef struct
   GPIO_TypeDef *port;
   uint16_t      pin;
   GPIO_PinState pressed_state;
+  bool          last_state;
 } button_tbl_t;
 
 button_tbl_t button_tbl[BUTTON_MAX_CH] =
     {
         // PC13, CH 0번, Active low
-        {GPIOC, GPIO_PIN_13, GPIO_PIN_RESET},
+        {GPIOC, GPIO_PIN_13, GPIO_PIN_RESET, false},
     };
 
 bool button_init(void)
@@ -56,6 +57,23 @@ bool button_pressed(uint8_t ch)
   {
     ret = true;
   }
+
+  return ret;
+}
+
+bool button_get_event(uint8_t ch)
+{
+  if (ch >= BUTTON_MAX_CH) return false;
+
+  bool ret = false;
+  bool current_state = button_pressed(ch);
+
+  if (current_state == true && button_tbl[ch].last_state == false)
+  {
+    ret = true;
+  }
+
+  button_tbl[ch].last_state = current_state;
 
   return ret;
 }

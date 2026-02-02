@@ -21,6 +21,7 @@ bool led_init(void);
 void led_on(uint8_t ch);
 void led_off(uint8_t ch);
 void led_toggle(uint8_t ch);
+bool led_state(uint8_t ch);
 
 #endif
 
