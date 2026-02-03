@@ -13,7 +13,7 @@ static bool is_open[UART_MAX_CH];
 
 static qbuffer_t qbuffer[UART_MAX_CH];
 static uint8_t rx_buf[256];
-static uint8_t rx_data[UART_MAX_CH];
+// static uint8_t rx_data[UART_MAX_CH];   1Byte Interrupt
 
 
 UART_HandleTypeDef huart2;
@@ -52,7 +52,7 @@ bool uart_open(uint8_t ch, uint32_t baudrate)
       huart2.Init.OverSampling  = UART_OVERSAMPLING_16;
 
       // UART2 전용 RX buf
-      qbuffer_create(&qbuffer[_DEF_UART2], &rx_buf[0], 256);
+      qbuffer_create(&qbuffer[ch], &rx_buf[0], 256);
 
       __HAL_RCC_DMA1_CLK_ENABLE();
       HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
@@ -67,10 +67,14 @@ bool uart_open(uint8_t ch, uint32_t baudrate)
         ret = true;
         is_open[ch] = true;
 
-        if (HAL_UART_Receive_IT(&huart2, (uint8_t *)&rx_data[_DEF_UART2], 1) != HAL_OK)
+        // if (HAL_UART_Receive_IT(&huart2, (uint8_t *)&rx_data[_DEF_UART2], 1) != HAL_OK) 1Byte Interrupt
+        if (HAL_UART_Receive_DMA(&huart2, (uint8_t *)&rx_buf[ch], 256) != HAL_OK)
         {
           ret = false;
         }
+        // qbuffer clear
+        qbuffer[ch].in = qbuffer[ch].len - hdma_usart2_rx.Instance->CNDTR;
+        qbuffer[ch].out = qbuffer[ch].in;
       }
       break;
   }
@@ -88,7 +92,8 @@ uint32_t uart_available(uint8_t ch)
       // ret = cdc_available();
       break;
     case _DEF_UART2:
-      ret = qbuffer_available(&qbuffer[_DEF_UART2]);
+      qbuffer[ch].in = (qbuffer[ch].len - hdma_usart2_rx.Instance->CNDTR);
+      ret = qbuffer_available(&qbuffer[ch]);
       break;
   }
 
@@ -106,7 +111,7 @@ uint32_t uart_read(uint8_t ch)
       break;
 
     case _DEF_UART2:
-      qbuffer_read(&qbuffer[_DEF_UART2], &ret, 1);
+      qbuffer_read(&qbuffer[ch], &ret, 1);
       break;
   }
 
@@ -162,6 +167,8 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+// 1Byte Interrupt
+#if 0
   if (huart->Instance == USART2)
   {
     // 만들어둔 qbuffer에 data를 옮긴 후 다음 데이터 수신
@@ -169,6 +176,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
     HAL_UART_Receive_IT(&huart2, (uint8_t *)&rx_data[_DEF_UART2], 1);
   }
+#endif
 }
 
 // CubeMX generate Code
