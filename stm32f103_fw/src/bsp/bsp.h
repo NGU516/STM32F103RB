@@ -10,6 +10,14 @@
 
 #include "def.h"
 
+#define _USE_LOG_PRINT    1
+
+#if _USE_LOG_PRINT
+#define log_printf(fmt, ...)    printf(fmt, ##__VA_ARGS__)
+#else
+#define log_printf(fmt, ...)
+#endif
+
 
 #include "stm32f1xx_hal.h"  // HAL driver
 

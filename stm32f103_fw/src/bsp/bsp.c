@@ -1,5 +1,5 @@
 #include "bsp.h"
-
+#include "uart.h"
 
 
 
@@ -20,11 +20,18 @@ void delay(uint32_t ms)
   HAL_Delay(ms);
 }
 
-uint32_t millls(void)
+uint32_t millis(void)
 {
   return HAL_GetTick();
 }
 
+int __io_putchar(int ch)
+{
+  // UART2로 printf 전송
+  uart_write(_DEF_UART2, (uint8_t *)&ch, 1);
+
+  return 1;
+}
 
 
 
