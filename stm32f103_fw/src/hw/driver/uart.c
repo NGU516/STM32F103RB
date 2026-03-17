@@ -67,8 +67,8 @@ bool uart_open(uint8_t ch, uint32_t baudrate)
         ret = true;
         is_open[ch] = true;
 
-        // if (HAL_UART_Receive_IT(&huart2, (uint8_t *)&rx_data[_DEF_UART2], 1) != HAL_OK) 1Byte Interrupt
-        if (HAL_UART_Receive_DMA(&huart2, (uint8_t *)&rx_buf[ch], 256) != HAL_OK)
+        // 1Byte Interrupt
+        if (HAL_UART_Receive_DMA(&huart2, (uint8_t *)&rx_buf[0], 256) != HAL_OK)
         {
           ret = false;
         }

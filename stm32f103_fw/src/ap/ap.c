@@ -64,11 +64,11 @@ void ap_main(void)
 
         log_printf("Flash Read...\n");
 
-        flash_read(0x8000000 + (60*1024), buf, 32);
+        flash_read(0x08000000 + (60*1024), buf, 32);
 
         for (int i=0; i<32; i++)
         {
-          log_printf("0x%X : 0x%x\n", 0x800000 + (60*1024) + i, buf[i]);
+          log_printf("0x%X : 0x%x\n", 0x0800000 + (60*1024) + i, buf[i]);
         }
       }
 
@@ -76,7 +76,7 @@ void ap_main(void)
       {
         log_printf("Flash Erase...\n");
 
-        if (flash_erase(0x8000000 + (60*1024), 32) == true)
+        if (flash_erase(0x08000000 + (60*1024), 32) == true)
           log_printf("Flash Erase OK\n");
         else
           log_printf("Flash Erase Fail...\n");
@@ -91,7 +91,7 @@ void ap_main(void)
 
         log_printf("Flash Write...\n");
 
-        if (flash_write(0x8000000 + (60*1024), buf, 32) == true)
+        if (flash_write(0x08000000 + (60*1024), buf, 32) == true)
           log_printf("Flash Write OK\n");
         else
           log_printf("Flash Write Fail...\n");

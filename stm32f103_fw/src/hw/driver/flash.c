@@ -9,7 +9,7 @@
 #include "flash.h"
 
 
-#define FLASH_SECTOR_MAX        64
+#define FLASH_SECTOR_MAX        128
 
 
 
@@ -30,7 +30,7 @@ bool flash_init(void)
 {
   for (int i=0; i<FLASH_SECTOR_MAX; i++)
   {
-    flash_tbl[i].addr = 0x80000000 + i*1024;
+    flash_tbl[i].addr = 0x08000000 + i*1024;
     flash_tbl[i].length = 1024;
   }
 
