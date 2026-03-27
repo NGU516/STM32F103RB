@@ -15,9 +15,11 @@
 void hw_init(void)
 {
   bsp_init();
+  rtc_init();
 
+  reset_init();
   led_init();
-  button_init();
   uart_init();
   flash_init();
+  button_init();
 }

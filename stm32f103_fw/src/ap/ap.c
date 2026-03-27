@@ -27,7 +27,7 @@ void ap_main(void)
     {
       pre_time = millis();
     }
-#if 0
+
     // Button, UART output
     if (button_get_event(_DEF_BUTTON1))
     {
@@ -51,7 +51,8 @@ void ap_main(void)
       rx_data = uart_read(_DEF_UART2);
       uart_printf(_DEF_UART2, "UART2 Rx %c %x\r\n", rx_data, rx_data);
     }
-#endif
+
+#if 0
     if (uart_available(_DEF_UART2) > 0)
     {
       uint8_t rx_data;
@@ -97,6 +98,6 @@ void ap_main(void)
           log_printf("Flash Write Fail...\n");
       }
     }
-
+#endif
   }
 }

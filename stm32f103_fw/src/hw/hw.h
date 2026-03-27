@@ -6,6 +6,8 @@
 
 #include "led.h"
 #include "button.h"
+#include "rtc.h"
+#include "reset.h"
 #include "uart.h"
 #include "flash.h"
 
