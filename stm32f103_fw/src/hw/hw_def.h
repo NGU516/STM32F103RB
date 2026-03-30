@@ -15,15 +15,21 @@
 #define _USE_HW_RESET
 #define _USE_HW_FLASH
 
-// 만들어둔 파일들 사용을 위한 정의
-// led, button, uart driver
-#define _USE_HW_LED
-#define      HW_LED_MAX_CH     1
-#define _USE_HW_BUTTON
-#define      HW_BUTTON_MAX_CH  1
-#define _USE_HW_UART
-#define      HW_UART_MAX_CH    3
 
+// 만들어둔 파일들 사용을 위한 정의
+// led, button, uart driver, CLI
+#define _USE_HW_LED
+#define      HW_LED_MAX_CH        1
+
+#define _USE_HW_BUTTON
+#define      HW_BUTTON_MAX_CH     1
+
+#define _USE_HW_UART
+#define      HW_UART_MAX_CH       3
+
+#define _USE_HW_CLI
+#define      HW_CLI_LINE_HIS_MAX  4
+#define      HW_CLI_LINE_BUF_MAX  32
 
 
 

@@ -13,6 +13,7 @@
 
 void ap_init(void)
 {
+  uart_open(_DEF_UART1, 115200);
   uart_open(_DEF_UART2, 115200);
 }
 
@@ -21,6 +22,10 @@ void ap_main(void)
   uint32_t pre_time;
 
   pre_time = millis();
+
+  uart_printf(_DEF_UART1, "USART1 (CP2102) Test Start! \r\n");
+  uart_printf(_DEF_UART2, "USART2 (Main) Test Start! \r\n");
+
   while(1)
   {
     if (millis() - pre_time >= 500)
@@ -33,17 +38,25 @@ void ap_main(void)
     {
       led_toggle(_DEF_LED1);
 
-      if (led_state(_DEF_LED1))
-      {
-        uart_printf(_DEF_UART2, "UART2 LED On \r\n");
-      }
-      else
-      {
-        uart_printf(_DEF_UART2, "UART2 LED Off \r\n");
-      }
+      bool state = led_state(_DEF_LED1);
+
+      uart_printf(_DEF_UART1, "U1: LED %s \r\n", state ? "ON" : "OFF");
+      uart_printf(_DEF_UART2, "U2: LED %s \r\n", state ? "ON" : "OFF");
+    }
+    // echo
+
+    // UART1(CP2102) 에코 테스트
+    if (uart_available(_DEF_UART1) > 0)
+    {
+      uint8_t rx_data = uart_read(_DEF_UART1);
+
+      // 1. 입력받은 채널로 다시 보냄 (Echo)
+      uart_printf(_DEF_UART2, "U1 Rx: %c (0x%02X)\r\n", rx_data, rx_data);
+
+      // 2. 다른 채널로도 전달 (Bridge - 데이터 흐름 확인용)
+      uart_printf(_DEF_UART1, "[U1 -> U2]: %c \r\n", rx_data);
     }
 
-    // echo
     if (uart_available(_DEF_UART2) > 0)
     {
       uint8_t rx_data;
@@ -51,7 +64,10 @@ void ap_main(void)
       rx_data = uart_read(_DEF_UART2);
       uart_printf(_DEF_UART2, "UART2 Rx %c %x\r\n", rx_data, rx_data);
     }
+  }
+}
 
+// flash test
 #if 0
     if (uart_available(_DEF_UART2) > 0)
     {
@@ -99,5 +115,3 @@ void ap_main(void)
       }
     }
 #endif
-  }
-}

@@ -10,6 +10,7 @@
 #include "reset.h"
 #include "uart.h"
 #include "flash.h"
+#include "cli.h"
 
 void hw_init(void);
 

@@ -12,10 +12,12 @@
 static bool is_open[UART_MAX_CH];
 
 static qbuffer_t qbuffer[UART_MAX_CH];
-static uint8_t rx_buf[256];
-// static uint8_t rx_data[UART_MAX_CH];   1Byte Interrupt
+static uint8_t UART1_rx_buf[256];   // 256Byte Interrupt Circular Queue
+static uint8_t UART1_rx_data;       // 1Byte Interrupt data
+static uint8_t UART2_rx_buf[256];   // 256Byte DMA
 
 
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
@@ -37,8 +39,33 @@ bool uart_open(uint8_t ch, uint32_t baudrate)
   switch(ch)
   {
     case _DEF_UART1:
-//      is_open[ch] = true;
-//      ret = true;
+
+      huart1.Instance = USART1;
+      huart1.Init.BaudRate = baudrate;
+      huart1.Init.WordLength = UART_WORDLENGTH_8B;
+      huart1.Init.StopBits = UART_STOPBITS_1;
+      huart1.Init.Parity = UART_PARITY_NONE;
+      huart1.Init.Mode = UART_MODE_TX_RX;
+      huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+      huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+
+      qbuffer_create(&qbuffer[ch], &UART1_rx_buf[0], 256);
+
+      if (HAL_UART_Init(&huart1) != HAL_OK)
+      {
+        ret = false;
+      }
+      else
+      {
+        ret = true;
+        is_open[ch] = true;
+
+        // RX Interrupt
+        if (HAL_UART_Receive_IT(&huart1, &UART1_rx_data, 1) != HAL_OK)
+        {
+          ret = false;
+        }
+      }
       break;
 
     case _DEF_UART2:
@@ -52,7 +79,7 @@ bool uart_open(uint8_t ch, uint32_t baudrate)
       huart2.Init.OverSampling  = UART_OVERSAMPLING_16;
 
       // UART2 전용 RX buf
-      qbuffer_create(&qbuffer[ch], &rx_buf[0], 256);
+      qbuffer_create(&qbuffer[ch], &UART2_rx_buf[0], 256);
 
       __HAL_RCC_DMA1_CLK_ENABLE();
       HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
@@ -67,8 +94,7 @@ bool uart_open(uint8_t ch, uint32_t baudrate)
         ret = true;
         is_open[ch] = true;
 
-        // 1Byte Interrupt
-        if (HAL_UART_Receive_DMA(&huart2, (uint8_t *)&rx_buf[0], 256) != HAL_OK)
+        if (HAL_UART_Receive_DMA(&huart2, (uint8_t *)&UART2_rx_buf[0], 256) != HAL_OK)
         {
           ret = false;
         }
@@ -89,8 +115,9 @@ uint32_t uart_available(uint8_t ch)
   switch(ch)
   {
     case _DEF_UART1:
-      // ret = cdc_available();
+      ret = qbuffer_available(&qbuffer[ch]);
       break;
+
     case _DEF_UART2:
       qbuffer[ch].in = (qbuffer[ch].len - hdma_usart2_rx.Instance->CNDTR);
       ret = qbuffer_available(&qbuffer[ch]);
@@ -107,7 +134,7 @@ uint32_t uart_read(uint8_t ch)
   switch(ch)
   {
     case _DEF_UART1:
-      // ret = cdc_read();
+      qbuffer_read(&qbuffer[ch], &ret, 1);
       break;
 
     case _DEF_UART2:
@@ -127,8 +154,13 @@ uint32_t uart_write(uint8_t ch, uint8_t *p_data, uint32_t length)
     switch(ch)
     {
       case _DEF_UART1:
-        // ret = cdc_write();
+        status = HAL_UART_Transmit(&huart1, p_data, length, 100);
+        if (status == HAL_OK)
+        {
+          ret = length;
+        }
         break;
+
       case _DEF_UART2:
         status = HAL_UART_Transmit(&huart2, p_data, length, 100);
         if (status == HAL_OK)
@@ -168,23 +200,54 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 // 1Byte Interrupt
-#if 0
-  if (huart->Instance == USART2)
+
+  if (huart->Instance == USART1)
   {
     // 만들어둔 qbuffer에 data를 옮긴 후 다음 데이터 수신
-    qbuffer_write(&qbuffer[_DEF_UART2], &rx_data[_DEF_UART2], 1);
+    qbuffer_write(&qbuffer[_DEF_UART1], &UART1_rx_data, 1);
 
-    HAL_UART_Receive_IT(&huart2, (uint8_t *)&rx_data[_DEF_UART2], 1);
+    HAL_UART_Receive_IT(&huart1, (uint8_t *)&UART1_rx_data, 1);
   }
-#endif
+
 }
+
 
 // CubeMX generate Code
 void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
 {
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(uartHandle->Instance==USART2)
+  if(uartHandle->Instance==USART1)
+  {
+  /* USER CODE BEGIN USART1_MspInit 0 */
+
+  /* USER CODE END USART1_MspInit 0 */
+    /* USART1 clock enable */
+    __HAL_RCC_USART1_CLK_ENABLE();
+
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /**USART1 GPIO Configuration
+    PA9     ------> USART1_TX
+    PA10     ------> USART1_RX
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_9;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_10;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* USART1 interrupt Init */
+    HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
+  /* USER CODE BEGIN USART1_MspInit 1 */
+
+  /* USER CODE END USART1_MspInit 1 */
+  }
+  else if(uartHandle->Instance==USART2)
   {
   /* USER CODE BEGIN USART2_MspInit 0 */
 
@@ -236,7 +299,27 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
 void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 {
 
-  if(uartHandle->Instance==USART2)
+  if(uartHandle->Instance==USART1)
+  {
+  /* USER CODE BEGIN USART1_MspDeInit 0 */
+
+  /* USER CODE END USART1_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_USART1_CLK_DISABLE();
+
+    /**USART1 GPIO Configuration
+    PA9     ------> USART1_TX
+    PA10     ------> USART1_RX
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9|GPIO_PIN_10);
+
+    /* USART1 interrupt Deinit */
+    HAL_NVIC_DisableIRQ(USART1_IRQn);
+  /* USER CODE BEGIN USART1_MspDeInit 1 */
+
+  /* USER CODE END USART1_MspDeInit 1 */
+  }
+  else if(uartHandle->Instance==USART2)
   {
   /* USER CODE BEGIN USART2_MspDeInit 0 */
 
