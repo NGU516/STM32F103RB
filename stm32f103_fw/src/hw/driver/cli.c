@@ -74,12 +74,12 @@ static bool cli_update(cli_t *p_cli, uint8_t rx_data);
 static void cli_line_clean(cli_t *p_cli);
 static void cli_line_add(cli_t *p_cli);
 static void cli_line_change(cli_t *p_cli, int8_t key_up);
-static void cliShowPrompt(cli_t *p_cli);
+static void cli_showPrompt(cli_t *p_cli);
 
 
 
 
-bool cliInit(void)
+bool cli_init(void)
 {
   cli_node.is_open = false;
   cli_node.is_log  = false;
@@ -95,7 +95,7 @@ bool cliInit(void)
   return true;
 }
 
-bool cliOpen(uint8_t ch, uint32_t baud)
+bool cli_open(uint8_t ch, uint32_t baud)
 {
   cli_node.ch = ch;
   cli_node.baud = baud;
@@ -105,7 +105,7 @@ bool cliOpen(uint8_t ch, uint32_t baud)
   return cli_node.is_open;
 }
 
-bool cliOpenLog(uint8_t ch, uint32_t baud)
+bool cli_openLog(uint8_t ch, uint32_t baud)
 {
   bool ret;
 
@@ -121,13 +121,13 @@ bool cliOpenLog(uint8_t ch, uint32_t baud)
   return ret;
 }
 
-bool cliLogClose(void)
+bool cli_logClose(void)
 {
   cli_node.is_log = false;
   return true;
 }
 
-void cliShowLog(cli_t *p_cli)
+void cli_showLog(cli_t *p_cli)
 {
   if (cli_node.is_log == true)
   {
@@ -147,13 +147,13 @@ void cliShowLog(cli_t *p_cli)
   }
 }
 
-void cliShowPrompt(cli_t *p_cli)
+void cli_showPrompt(cli_t *p_cli)
 {
   uart_printf(p_cli->ch, "\n\r");
   uart_printf(p_cli->ch, CLI_PROMPT_STR);
 }
 
-bool cliMain(void)
+bool cli_main(void)
 {
   if (cli_node.is_open != true)
   {
@@ -192,7 +192,7 @@ bool cli_update(cli_t *p_cli, uint8_t rx_data)
         line->count = 0;
         line->cursor = 0;
         line->buf[0] = 0;
-        cliShowPrompt(p_cli);
+        cli_showPrompt(p_cli);
         break;
 
 
@@ -373,7 +373,7 @@ bool cli_update(cli_t *p_cli, uint8_t rx_data)
 
 
 
-  cliShowLog(p_cli);
+  cli_showLog(p_cli);
 
   return ret;
 }

@@ -15,7 +15,7 @@
 void hw_init(void)
 {
   bsp_init();
-  cliInit();
+  cli_init();
 
   rtc_init();
   reset_init();

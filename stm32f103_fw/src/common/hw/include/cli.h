@@ -18,10 +18,10 @@
 #define CLI_LINE_HIS_MAX      HW_CLI_LINE_HIS_MAX
 #define CLI_LINE_BUF_MAX      HW_CLI_LINE_BUF_MAX
 
-bool cliInit(void);
-bool cliOpen(uint8_t ch, uint32_t baud);
-bool cliOpenLog(uint8_t ch, uint32_t baud);
-bool cliMain(void);
+bool cli_init(void);
+bool cli_open(uint8_t ch, uint32_t baud);
+bool cli_openLog(uint8_t ch, uint32_t baud);
+bool cli_main(void);
 
 
 #endif
