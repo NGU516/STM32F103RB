@@ -15,6 +15,8 @@
 #include <stdint.h> // uint32_t
 #include <stdbool.h>
 #include <stdarg.h>
+#include <string.h>
+#include <stdlib.h>
 
 
 // LED CH(채널) 설정

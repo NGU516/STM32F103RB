@@ -15,6 +15,9 @@ void ap_init(void)
 {
   uart_open(_DEF_UART1, 115200);
   uart_open(_DEF_UART2, 115200);
+
+  cli_open(_DEF_UART2, 115200);
+  cli_openLog(_DEF_UART1, 115200);
 }
 
 void ap_main(void)
@@ -28,6 +31,7 @@ void ap_main(void)
     if (millis() - pre_time >= 500)
     {
       pre_time = millis();
+      led_toggle(_DEF_LED1);
     }
 
     cli_main();

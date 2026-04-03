@@ -5,7 +5,6 @@
  *      Author: cdm05
  */
 
-
 #include "cli.h"
 #include "uart.h"
 
@@ -24,6 +23,9 @@
 
 #define CLI_PROMPT_STR            "cli# "
 
+#define CLI_ARGS_MAX              32
+#define CLI_PRINT_BUF_MAX         256
+
 
 enum
 {
@@ -34,6 +36,12 @@ enum
   CLI_RX_SP4,
 };
 
+
+typedef struct
+{
+  char   cmd_str[CLI_CMD_NAME_MAX];
+  void (*cmd_func)(cli_args_t *);
+} cli_cmd_t;
 
 
 typedef struct
@@ -54,6 +62,10 @@ typedef struct
   uint8_t  log_ch;
   uint32_t log_baud;
   uint8_t  state;
+  char     print_buffer[CLI_PRINT_BUF_MAX];
+  uint16_t  argc;
+  char     *argv[CLI_ARGS_MAX];
+
 
   bool        hist_line_new;
   int8_t      hist_line_i;
@@ -62,6 +74,10 @@ typedef struct
 
   cli_line_t  line_buf[CLI_LINE_HIS_MAX];
   cli_line_t  line;
+
+  uint16_t    cmd_count;
+  cli_cmd_t   cmd_list[CLI_CMD_LIST_MAX];
+  cli_args_t  cmd_args;
 } cli_t;
 
 
@@ -74,9 +90,19 @@ static bool cli_update(cli_t *p_cli, uint8_t rx_data);
 static void cli_line_clean(cli_t *p_cli);
 static void cli_line_add(cli_t *p_cli);
 static void cli_line_change(cli_t *p_cli, int8_t key_up);
-static void cli_showPrompt(cli_t *p_cli);
+static void cli_show_prompt(cli_t *p_cli);
+static void cli_to_upper(char *str);
+static bool cli_run_cmd(cli_t *p_cli);
+static bool cli_parse_args(cli_t *p_cli);
+
+static int32_t  cli_args_get_data(uint8_t index);
+static float    cli_args_get_float(uint8_t index);
+static char    *cli_args_get_str(uint8_t index);
+static bool     cli_args_is_str(uint8_t index, char *p_str);
 
 
+void cli_show_list(cli_args_t *args);
+void cli_memory_dump(cli_args_t *args);
 
 
 bool cli_init(void)
@@ -90,7 +116,16 @@ bool cli_init(void)
   cli_node.hist_line_count = 0;
   cli_node.hist_line_new   = false;
 
+  cli_node.cmd_args.get_data  = cli_args_get_data;
+  cli_node.cmd_args.get_float = cli_args_get_float;
+  cli_node.cmd_args.get_str   = cli_args_get_str;
+  cli_node.cmd_args.is_str    = cli_args_is_str;
+
   cli_line_clean(&cli_node);
+
+
+  cli_add("help", cli_show_list);
+  cli_add("md"  , cli_memory_dump);
 
   return true;
 }
@@ -121,13 +156,13 @@ bool cli_openLog(uint8_t ch, uint32_t baud)
   return ret;
 }
 
-bool cli_logClose(void)
+bool cli_log_close(void)
 {
   cli_node.is_log = false;
   return true;
 }
 
-void cli_showLog(cli_t *p_cli)
+void cli_show_log(cli_t *p_cli)
 {
   if (cli_node.is_log == true)
   {
@@ -147,7 +182,7 @@ void cli_showLog(cli_t *p_cli)
   }
 }
 
-void cli_showPrompt(cli_t *p_cli)
+void cli_show_prompt(cli_t *p_cli)
 {
   uart_printf(p_cli->ch, "\n\r");
   uart_printf(p_cli->ch, CLI_PROMPT_STR);
@@ -160,7 +195,7 @@ bool cli_main(void)
     return false;
   }
 
-  if (uart_available(cli_node.ch) > 0)
+  while (uart_available(cli_node.ch) > 0)
   {
     cli_update(&cli_node, uart_read(cli_node.ch));
   }
@@ -187,12 +222,13 @@ bool cli_update(cli_t *p_cli, uint8_t rx_data)
         if (line->count > 0)
         {
           cli_line_add(p_cli);
+          cli_run_cmd(p_cli);
         }
 
         line->count = 0;
         line->cursor = 0;
         line->buf[0] = 0;
-        cli_showPrompt(p_cli);
+        cli_show_prompt(p_cli);
         break;
 
 
@@ -373,7 +409,7 @@ bool cli_update(cli_t *p_cli, uint8_t rx_data)
 
 
 
-  cli_showLog(p_cli);
+  cli_show_log(p_cli);
 
   return ret;
 }
@@ -441,4 +477,284 @@ void cli_line_change(cli_t *p_cli, int8_t key_up)
   p_cli->line.cursor = p_cli->line.count;
 
   p_cli->hist_line_new = false;
+}
+
+bool cli_run_cmd(cli_t *p_cli)
+{
+  bool ret = false;
+
+
+  if (cli_parse_args(p_cli) == true)
+  {
+    cli_printf("\r\n");
+
+    cli_to_upper(p_cli->argv[0]);
+
+    for (int i=0; i<p_cli->cmd_count; i++)
+    {
+      if (strcmp(p_cli->argv[0], p_cli->cmd_list[i].cmd_str) == 0)
+      {
+        p_cli->cmd_args.argc =  p_cli->argc - 1;
+        p_cli->cmd_args.argv = &p_cli->argv[1];
+        p_cli->cmd_list[i].cmd_func(&p_cli->cmd_args);
+        break;
+      }
+    }
+  }
+
+  return ret;
+}
+
+bool cli_parse_args(cli_t *p_cli)
+{
+  bool ret = false;
+  char *tok;
+  char *next_ptr;
+  uint16_t argc = 0;
+  static const char *delim = " \f\n\r\t\v";
+  char *cmdline;
+  char **argv;
+
+  p_cli->argc = 0;
+
+  cmdline = (char *)p_cli->line.buf;
+  argv    = p_cli->argv;
+
+  argv[argc] = NULL;
+
+  for (tok = strtok_r(cmdline, delim, &next_ptr); tok; tok = strtok_r(NULL, delim, &next_ptr))
+  {
+    argv[argc++] = tok;
+  }
+
+  p_cli->argc = argc;
+
+  if (argc > 0)
+  {
+    ret = true;
+  }
+
+  return ret;
+}
+
+void cli_printf(const char *fmt, ...)
+{
+  va_list arg;
+  va_start (arg, fmt);
+  int32_t len;
+  cli_t *p_cli = &cli_node;
+
+
+  len = vsnprintf(p_cli->print_buffer, 256, fmt, arg);
+  va_end (arg);
+
+  uart_write(p_cli->ch, (uint8_t *)p_cli->print_buffer, len);
+}
+
+void cli_to_upper(char *str)
+{
+  uint16_t i;
+  uint8_t  str_ch;
+
+  for (i=0; i<CLI_CMD_NAME_MAX; i++)
+  {
+    str_ch = str[i];
+
+    if (str_ch == 0)
+    {
+      break;
+    }
+
+    if ((str_ch >= 'a') && (str_ch <= 'z'))
+    {
+      str_ch = str_ch - 'a' + 'A';
+    }
+    str[i] = str_ch;
+  }
+
+  if (i == CLI_CMD_NAME_MAX)
+  {
+    str[i-1] = 0;
+  }
+}
+
+int32_t cli_args_get_data(uint8_t index)
+{
+  int32_t ret = 0;
+  cli_t *p_cli = &cli_node;
+
+
+  if (index >= p_cli->cmd_args.argc)
+  {
+    return 0;
+  }
+
+  ret = (int32_t)strtoul((const char * ) p_cli->cmd_args.argv[index], (char **)NULL, (int) 0);
+
+  return ret;
+}
+
+float cli_args_get_float(uint8_t index)
+{
+  float ret = 0.0;
+  cli_t *p_cli = &cli_node;
+
+
+  if (index >= p_cli->cmd_args.argc)
+  {
+    return 0;
+  }
+
+  ret = (float)strtof((const char * ) p_cli->cmd_args.argv[index], (char **)NULL);
+
+  return ret;
+}
+
+char *cli_args_get_str(uint8_t index)
+{
+  char *ret = NULL;
+  cli_t *p_cli = &cli_node;
+
+
+  if (index >= p_cli->cmd_args.argc)
+  {
+    return 0;
+  }
+
+  ret = p_cli->cmd_args.argv[index];
+
+  return ret;
+}
+
+bool cli_args_is_str(uint8_t index, char *p_str)
+{
+  bool ret = false;
+  cli_t *p_cli = &cli_node;
+
+
+  if (index >= p_cli->cmd_args.argc)
+  {
+    return 0;
+  }
+
+  if(strcmp(p_str, p_cli->cmd_args.argv[index]) == 0)
+  {
+    ret = true;
+  }
+
+  return ret;
+}
+
+bool cli_keep_loop(void)
+{
+  cli_t *p_cli = &cli_node;
+
+
+  if (uart_available(p_cli->ch) == 0)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+bool cli_add(const char *cmd_str, void (*p_func)(cli_args_t *))
+{
+  bool ret = true;
+  cli_t *p_cli = &cli_node;
+  uint16_t index;
+
+  if (p_cli->cmd_count >= CLI_CMD_LIST_MAX)
+  {
+    return false;
+  }
+
+  index = p_cli->cmd_count;
+
+  strcpy(p_cli->cmd_list[index].cmd_str, cmd_str);
+  p_cli->cmd_list[index].cmd_func = p_func;
+
+  cli_to_upper(p_cli->cmd_list[index].cmd_str);
+
+  p_cli->cmd_count++;
+
+  return ret;
+}
+
+void cli_show_list(cli_args_t *args)
+{
+  cli_t *p_cli = &cli_node;
+
+
+  cli_printf("\r\n");
+  cli_printf("---------- cmd list ---------\r\n");
+
+  for (int i=0; i<p_cli->cmd_count; i++)
+  {
+    cli_printf(p_cli->cmd_list[i].cmd_str);
+    cli_printf("\r\n");
+  }
+
+  cli_printf("-----------------------------\r\n");
+}
+
+void cli_memory_dump(cli_args_t *args)
+{
+  int idx, size = 16;
+  unsigned int *addr;
+  int idx1, i;
+  unsigned int *ascptr;
+  unsigned char asc[4];
+
+  int    argc = args->argc;
+  char **argv = args->argv;
+
+
+  if(args->argc < 1)
+  {
+    cli_printf(">> md addr [size] \n");
+    return;
+  }
+
+  if(argc > 1)
+  {
+    size = (int)strtoul((const char * ) argv[1], (char **)NULL, (int) 0);
+  }
+  addr   = (unsigned int *)strtoul((const char * ) argv[0], (char **)NULL, (int) 0);
+  ascptr = (unsigned int *)addr;
+
+  cli_printf("\n   ");
+  for (idx = 0; idx<size; idx++)
+  {
+    if((idx%4) == 0)
+    {
+      cli_printf(" 0x%08X: ", (unsigned int)addr);
+    }
+    cli_printf(" 0x%08X", *(addr));
+
+    if ((idx%4) == 3)
+    {
+      cli_printf ("  |");
+      for (idx1= 0; idx1< 4; idx1++)
+      {
+        memcpy((char *)asc, (char *)ascptr, 4);
+        for (i=0;i<4;i++)
+        {
+          if (asc[i] > 0x1f && asc[i] < 0x7f)
+          {
+            cli_printf("%c", asc[i]);
+          }
+          else
+          {
+            cli_printf(".");
+          }
+        }
+        ascptr+=1;
+      }
+      cli_printf("|\n   ");
+    }
+    addr++;
+  }
 }
