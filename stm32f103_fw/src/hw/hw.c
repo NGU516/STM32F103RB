@@ -21,6 +21,6 @@ void hw_init(void)
   reset_init();
   led_init();
   uart_init();
-  flash_init();
   button_init();
+  flash_init();
 }

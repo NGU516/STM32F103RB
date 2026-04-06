@@ -31,7 +31,6 @@ void ap_main(void)
     if (millis() - pre_time >= 500)
     {
       pre_time = millis();
-      led_toggle(_DEF_LED1);
     }
 
     cli_main();

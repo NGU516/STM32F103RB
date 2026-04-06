@@ -6,7 +6,7 @@
  */
 
 #include "led.h"
-
+#include "cli.h"
 
 
 
@@ -24,6 +24,10 @@ led_tbl_t led_tbl[LED_MAX_CH] =
         // PA5, CH 0번, Active high
         {GPIOA, GPIO_PIN_5, GPIO_PIN_SET, GPIO_PIN_RESET},
     };
+
+#ifdef _USE_HW_CLI
+static void cli_led(cli_args_t *args);
+#endif
 
 
 
@@ -52,6 +56,10 @@ bool led_init(void)
 
     led_off(i);
   }
+
+#ifdef _USE_HW_CLI
+  cli_add("led", cli_led);
+#endif
 
   return ret;
 }
@@ -83,3 +91,45 @@ bool led_state(uint8_t ch)
 
   return (HAL_GPIO_ReadPin(led_tbl[ch].port, led_tbl[ch].pin) == led_tbl[ch].on_state);
 }
+
+
+
+
+
+#ifdef _USE_HW_CLI
+
+void cli_led(cli_args_t *args)
+{
+  bool ret = false;
+
+  if (args->argc == 3 && args->is_str(0, "toggle") == true)
+  {
+    uint8_t led_ch;
+    uint32_t toggle_time;
+    uint32_t pre_time;
+
+    led_ch      = (uint8_t)args->get_data(1);
+    toggle_time = (uint32_t)args->get_data(2);
+
+    pre_time = millis();
+    while(cli_keep_loop())
+    {
+      if (millis() - pre_time >= toggle_time)
+      {
+        pre_time = millis();
+        led_toggle(led_ch);
+      }
+    }
+
+    ret = true;
+  }
+
+
+  if (ret != true)
+  {
+    cli_printf("led toggle ch[0~%d] time_ms\r\n", LED_MAX_CH);
+  }
+}
+
+
+#endif

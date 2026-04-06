@@ -43,7 +43,7 @@ bool cli_openLog(uint8_t ch, uint32_t baud);
 bool cli_main(void);
 void cli_printf(const char *fmt, ...);
 bool cli_add(const char *cmd_str, void (*p_func)(cli_args_t *));
-bool cli_keepLoop(void);
+bool cli_keep_loop(void);
 
 
 #endif

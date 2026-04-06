@@ -236,30 +236,9 @@ bool cli_update(cli_t *p_cli, uint8_t rx_data)
         p_cli->state = CLI_RX_SP1;
         break;
 
-
-      // DEL
-      //
-      case CLI_KEY_DEL:
-        if (line->cursor < line->count)
-        {
-          uint8_t mov_len;
-
-          mov_len = line->count - line->cursor;
-          for (int i=1; i<mov_len; i++)
-          {
-            line->buf[line->cursor + i - 1] = line->buf[line->cursor + i];
-          }
-
-          line->count--;
-          line->buf[line->count] = 0;
-
-          uart_printf(p_cli->ch, "\x1B[1P");
-        }
-        break;
-
-
       // 백스페이스
       //
+      case CLI_KEY_DEL:
       case CLI_KEY_BACK:
         if (line->count > 0 && line->cursor > 0)
         {
@@ -375,6 +354,12 @@ bool cli_update(cli_t *p_cli, uint8_t rx_data)
         uart_printf(p_cli->ch, (char *)p_cli->line.buf);
       }
 
+      // DEL 키 시퀀스 (ESC [ 3 ~) 중 '3' 처리
+      if (rx_data == '3')
+      {
+        p_cli->state = CLI_RX_SP4;
+      }
+
       if (rx_data == CLI_KEY_HOME)
       {
         uart_printf(p_cli->ch, "\x1B[%dD", line->cursor);
@@ -404,6 +389,29 @@ bool cli_update(cli_t *p_cli, uint8_t rx_data)
 
     case CLI_RX_SP4:
       p_cli->state = CLI_RX_IDLE;
+
+      if (rx_data == '~')
+      {
+        // DEL
+        //
+        case CLI_KEY_DEL:
+          if (line->cursor < line->count)
+          {
+            uint8_t mov_len;
+
+            mov_len = line->count - line->cursor;
+            for (int i=1; i<=mov_len; i++)
+            {
+              line->buf[line->cursor + i - 1] = line->buf[line->cursor + i];
+            }
+
+            line->count--;
+            line->buf[line->count] = 0;
+
+            uart_printf(p_cli->ch, "\x1B[1P");
+          }
+          break;
+      }
       break;
   }
 
