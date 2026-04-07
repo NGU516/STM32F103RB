@@ -20,6 +20,7 @@
 
 
 #include "stm32f1xx_hal.h"  // HAL driver
+#include "cmsis_os.h"       // FreeRTOS api
 
 void bsp_init(void);
 void delay(uint32_t ms);

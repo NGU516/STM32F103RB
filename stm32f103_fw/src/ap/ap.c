@@ -8,16 +8,27 @@
 
 #include "ap.h"
 
-
+static void thread_led(void const *argument);
 
 
 void ap_init(void)
 {
-  uart_open(_DEF_UART1, 115200);
+  //uart_open(_DEF_UART1, 115200);
   uart_open(_DEF_UART2, 115200);
 
+  //cli_openLog(_DEF_UART1, 115200);
   cli_open(_DEF_UART2, 115200);
-  cli_openLog(_DEF_UART1, 115200);
+
+  osThreadDef(thread_led, thread_led, _HW_DEF_RTOS_THREAD_PRI_LED, 0, _HW_DEF_RTOS_THREAD_MEM_LED);
+  if (osThreadCreate(osThread(thread_led), NULL) != NULL)
+  {
+    log_printf("thread_led \t\t: OK\r\n");
+  }
+  else
+  {
+    log_printf("thread_led \t\t: Fail\r\n");
+    while(1);
+  }
 }
 
 void ap_main(void)
@@ -38,8 +49,17 @@ void ap_main(void)
    }
 }
 
+static void thread_led(void const *argument)
+{
+  UNUSED(argument);
 
 
+  while(1)
+  {
+    led_toggle(_DEF_LED1);
+    delay(500);
+  }
+}
 
 
 // button, UART1, UART2 Test
